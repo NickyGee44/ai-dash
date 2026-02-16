@@ -9,6 +9,7 @@ export default function DashboardClient({ session }: { session: Session | null }
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<string[]>([]);
   const [streaming, setStreaming] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSignIn = async () => {
     await supabase.auth.signInWithOAuth({
@@ -30,38 +31,50 @@ export default function DashboardClient({ session }: { session: Session | null }
     setInput("");
     setMessages((prev) => [...prev, `You: ${userMessage}`]);
     setStreaming(true);
+    setError(null);
 
-    const response = await fetch("/api/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: userMessage }),
-    });
-
-    if (!response.body) {
-      setStreaming(false);
-      return;
-    }
-
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let assistant = "";
-
-    while (true) {
-      const { value, done } = await reader.read();
-      if (done) break;
-      assistant += decoder.decode(value, { stream: true });
-      setMessages((prev) => {
-        const next = [...prev];
-        const last = next[next.length - 1];
-        if (last?.startsWith("Assistant: ")) {
-          next[next.length - 1] = `Assistant: ${assistant}`;
-          return next;
-        }
-        return [...next, `Assistant: ${assistant}`];
+    try {
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: userMessage }),
       });
-    }
 
-    setStreaming(false);
+      if (!response.ok) {
+        const details = await response.text();
+        throw new Error(details || `Request failed with status ${response.status}`);
+      }
+
+      if (!response.body) {
+        throw new Error("Response did not include a stream.");
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let assistant = "";
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        assistant += decoder.decode(value, { stream: true });
+        setMessages((prev) => {
+          const next = [...prev];
+          const last = next[next.length - 1];
+          if (last?.startsWith("Assistant: ")) {
+            next[next.length - 1] = `Assistant: ${assistant}`;
+            return next;
+          }
+          return [...next, `Assistant: ${assistant}`];
+        });
+      }
+    } catch (submitError) {
+      const message =
+        submitError instanceof Error ? submitError.message : "Request failed";
+      setError(message);
+      setMessages((prev) => [...prev, `System: ${message}`]);
+    } finally {
+      setStreaming(false);
+    }
   };
 
   return (
@@ -91,6 +104,7 @@ export default function DashboardClient({ session }: { session: Session | null }
       </header>
 
       <section className="rounded border border-neutral-200 p-4">
+        {error && <p className="mb-3 text-sm text-red-600">{error}</p>}
         <div className="space-y-2 text-sm">
           {messages.length === 0 && (
             <p className="text-neutral-500">No messages yet.</p>
