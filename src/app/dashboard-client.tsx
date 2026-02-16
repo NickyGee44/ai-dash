@@ -6,13 +6,28 @@ import { createClient } from "@/lib/supabase/client";
 export default function DashboardClient({
   isAuthenticated,
   serverError,
+  supabaseUrl,
+  supabaseAnonKey,
 }: {
   isAuthenticated: boolean;
   serverError?: string | null;
+  supabaseUrl?: string | null;
+  supabaseAnonKey?: string | null;
 }) {
   const { supabase, clientError } = useMemo(() => {
+    if (!supabaseUrl || !supabaseAnonKey) {
+      return {
+        supabase: null,
+        clientError:
+          "Missing Supabase client configuration (URL or anon key).",
+      };
+    }
+
     try {
-      return { supabase: createClient(), clientError: null };
+      return {
+        supabase: createClient({ supabaseUrl, supabaseAnonKey }),
+        clientError: null,
+      };
     } catch (error) {
       const clientError =
         error instanceof Error
@@ -21,7 +36,7 @@ export default function DashboardClient({
       console.error("Failed to initialize Supabase client:", error);
       return { supabase: null, clientError };
     }
-  }, []);
+  }, [supabaseAnonKey, supabaseUrl]);
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<string[]>([]);
   const [streaming, setStreaming] = useState(false);
