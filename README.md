@@ -1,130 +1,36 @@
-# AI Assistant Dashboard
+This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
-> A secure, OAuth-based SaaS platform that gives non-technical users instant access to powerful AI agents without managing API keys or infrastructure.
+## Getting Started
 
-**Status:** 🚧 Planning & Architecture Phase  
-**Target MVP:** 4-6 weeks  
-**Stack:** Next.js 15 + Supabase + Claude/GPT  
-
----
-
-## Vision
-
-Democratize AI agent access. Users sign up with Google/GitHub → get a personal AI assistant for daily tasks, finances, research, and automation. No technical setup required.
-
-**Full vision document:** [PROJECT_VISION.md](./PROJECT_VISION.md)
-
----
-
-## Quick Start (Coming Soon)
+First, run the development server:
 
 ```bash
-# Clone repo
-git clone https://github.com/NickyGee44/ai-dash.git
-cd ai-dash
-
-# Install dependencies
-npm install
-
-# Set up environment
-cp .env.example .env.local
-# Add your Supabase + AI provider keys
-
-# Run dev server
 npm run dev
+# or
+yarn dev
+# or
+pnpm dev
+# or
+bun dev
 ```
 
----
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-## Architecture (Draft)
+You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
-### Frontend
-- **Next.js 15** (App Router, React Server Components)
-- **TypeScript** + **Tailwind CSS** + **shadcn/ui**
-- Mobile-responsive, PWA-ready
+This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
-### Backend
-- **Supabase** (Auth, PostgreSQL, Realtime, Edge Functions)
-- **Row-Level Security (RLS)** for user data isolation
-- **Stripe** for billing
+## Learn More
 
-### AI Layer
-- **Option A:** Fork/adapt ClawdBot for multi-tenant use
-- **Option B:** Custom agent framework (LangChain/LangGraph)
-- **Providers:** Claude (Sonnet 4.5), GPT-4o, Gemini (fallback)
+To learn more about Next.js, take a look at the following resources:
 
----
+- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
 
-## Security Principles
+You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
-1. **OAuth-only authentication** (Google, GitHub, Microsoft)
-2. **Platform-managed API keys** (users never see them)
-3. **Encrypted conversation history**
-4. **RLS for data isolation**
-5. **Prompt injection defense**
-6. **Audit logging** for all agent actions
-7. **GDPR compliance** (data export, deletion)
+## Deploy on Vercel
 
----
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
-## Roadmap
-
-### Phase 1: MVP (4-6 weeks)
-- [ ] User auth (OAuth with Supabase)
-- [ ] Chat interface (web-based AI assistant)
-- [ ] Conversation history (saved, searchable)
-- [ ] Usage dashboard (tokens, cost transparency)
-- [ ] Basic tools (web search, calculator)
-- [ ] Billing integration (Stripe)
-
-### Phase 2: Growth Features (Weeks 7-12)
-- [ ] Mobile app (PWA or React Native)
-- [ ] Voice input/output
-- [ ] Integrations (Calendar, Gmail, Notion)
-- [ ] Team workspaces
-- [ ] API access for power users
-
-### Phase 3: Scale (Months 4-6)
-- [ ] Enterprise features (SSO, admin controls)
-- [ ] White-label option
-- [ ] API marketplace (custom tools)
-- [ ] Advanced analytics
-
----
-
-## Pricing (Draft)
-
-| Tier | Price | Messages/mo | Features |
-|------|-------|-------------|----------|
-| **Free** | $0 | 100 | Basic tools, 7-day history |
-| **Pro** | $29 | 2,000 | Advanced tools, unlimited history, API access |
-| **Team** | $99 | 10,000 | Multi-user, admin controls, SSO |
-| **Enterprise** | Custom | Unlimited | On-premise, SLA, white-label |
-
----
-
-## Tech Stack Decisions Needed
-
-1. **Agent Framework:** ClawdBot fork vs. custom build?
-2. **AI Providers:** Primary (Claude) + fallback (GPT)?
-3. **Hosting:** Vercel + Supabase vs. self-hosted?
-4. **Mobile:** PWA vs. React Native?
-
----
-
-## Contributing
-
-This is a Bridg3 project. Internal development only for now. Public contributions may be accepted post-launch.
-
----
-
-## License
-
-Proprietary — All rights reserved by Bridg3 Inc.
-
----
-
-## Contact
-
-Nick Grossi — CEO, Bridg3  
-Email: novagrossi44@gmail.com
+Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
