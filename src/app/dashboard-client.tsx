@@ -5,16 +5,22 @@ import { createClient } from "@/lib/supabase/client";
 
 export default function DashboardClient({
   isAuthenticated,
+  authBypassEnabled,
   serverError,
   supabaseUrl,
   supabaseAnonKey,
 }: {
   isAuthenticated: boolean;
+  authBypassEnabled: boolean;
   serverError?: string | null;
   supabaseUrl?: string | null;
   supabaseAnonKey?: string | null;
 }) {
   const { supabase, clientError } = useMemo(() => {
+    if (authBypassEnabled) {
+      return { supabase: null, clientError: null };
+    }
+
     if (!supabaseUrl || !supabaseAnonKey) {
       return {
         supabase: null,
@@ -36,25 +42,13 @@ export default function DashboardClient({
       console.error("Failed to initialize Supabase client:", error);
       return { supabase: null, clientError };
     }
-  }, [supabaseAnonKey, supabaseUrl]);
+  }, [authBypassEnabled, supabaseAnonKey, supabaseUrl]);
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<string[]>([]);
   const [streaming, setStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const handleSignIn = async () => {
-    if (!supabase) return;
-    await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
-    });
-  };
-
-  const handleSignOut = async () => {
-    if (!supabase) return;
-    await supabase.auth.signOut();
-    window.location.reload();
-  };
+  const configError = serverError || (!authBypassEnabled ? clientError : null);
+  const canChat = isAuthenticated && (authBypassEnabled || Boolean(supabase));
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -116,19 +110,31 @@ export default function DashboardClient({
         <div>
           <h1 className="text-3xl font-semibold">xecbot dashboard</h1>
           <p className="text-sm text-neutral-500">
-            Supabase auth + OpenClaw streaming demo
+            {authBypassEnabled
+              ? "Auth bypass mode for feature testing"
+              : "Supabase auth + OpenClaw streaming demo"}
           </p>
         </div>
-        {isAuthenticated ? (
+        {authBypassEnabled ? null : isAuthenticated ? (
           <button
-            onClick={handleSignOut}
+            onClick={async () => {
+              if (!supabase) return;
+              await supabase.auth.signOut();
+              window.location.reload();
+            }}
             className="rounded bg-neutral-900 px-4 py-2 text-sm text-white"
           >
             Sign out
           </button>
         ) : (
           <button
-            onClick={handleSignIn}
+            onClick={async () => {
+              if (!supabase) return;
+              await supabase.auth.signInWithOAuth({
+                provider: "google",
+                options: { redirectTo: `${window.location.origin}/auth/callback` },
+              });
+            }}
             className="rounded bg-blue-600 px-4 py-2 text-sm text-white"
           >
             Sign in with Google
@@ -137,9 +143,9 @@ export default function DashboardClient({
       </header>
 
       <section className="rounded border border-neutral-200 p-4">
-        {(serverError || clientError) && (
+        {configError && (
           <p className="mb-3 text-sm text-red-600">
-            Configuration issue: {serverError || clientError}
+            Configuration issue: {configError}
           </p>
         )}
         {error && <p className="mb-3 text-sm text-red-600">{error}</p>}
@@ -160,12 +166,12 @@ export default function DashboardClient({
           placeholder={
             isAuthenticated ? "Ask OpenClaw…" : "Sign in to start chatting"
           }
-          disabled={!isAuthenticated || streaming || !supabase}
+          disabled={!canChat || streaming}
           className="flex-1 rounded border border-neutral-300 px-3 py-2 text-sm"
         />
         <button
           type="submit"
-          disabled={!isAuthenticated || streaming || !supabase}
+          disabled={!canChat || streaming}
           className="rounded bg-neutral-900 px-4 py-2 text-sm text-white disabled:opacity-50"
         >
           {streaming ? "Streaming…" : "Send"}
