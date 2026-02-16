@@ -1,17 +1,34 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Session } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 
-export default function DashboardClient({ session }: { session: Session | null }) {
-  const supabase = useMemo(() => createClient(), []);
+export default function DashboardClient({
+  isAuthenticated,
+  serverError,
+}: {
+  isAuthenticated: boolean;
+  serverError?: string | null;
+}) {
+  const { supabase, clientError } = useMemo(() => {
+    try {
+      return { supabase: createClient(), clientError: null };
+    } catch (error) {
+      const clientError =
+        error instanceof Error
+          ? error.message
+          : "Unable to initialize Supabase client.";
+      console.error("Failed to initialize Supabase client:", error);
+      return { supabase: null, clientError };
+    }
+  }, []);
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<string[]>([]);
   const [streaming, setStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleSignIn = async () => {
+    if (!supabase) return;
     await supabase.auth.signInWithOAuth({
       provider: "google",
       options: { redirectTo: `${window.location.origin}/auth/callback` },
@@ -19,6 +36,7 @@ export default function DashboardClient({ session }: { session: Session | null }
   };
 
   const handleSignOut = async () => {
+    if (!supabase) return;
     await supabase.auth.signOut();
     window.location.reload();
   };
@@ -86,7 +104,7 @@ export default function DashboardClient({ session }: { session: Session | null }
             Supabase auth + OpenClaw streaming demo
           </p>
         </div>
-        {session ? (
+        {isAuthenticated ? (
           <button
             onClick={handleSignOut}
             className="rounded bg-neutral-900 px-4 py-2 text-sm text-white"
@@ -104,6 +122,11 @@ export default function DashboardClient({ session }: { session: Session | null }
       </header>
 
       <section className="rounded border border-neutral-200 p-4">
+        {(serverError || clientError) && (
+          <p className="mb-3 text-sm text-red-600">
+            Configuration issue: {serverError || clientError}
+          </p>
+        )}
         {error && <p className="mb-3 text-sm text-red-600">{error}</p>}
         <div className="space-y-2 text-sm">
           {messages.length === 0 && (
@@ -120,14 +143,14 @@ export default function DashboardClient({ session }: { session: Session | null }
           value={input}
           onChange={(event) => setInput(event.target.value)}
           placeholder={
-            session ? "Ask OpenClaw…" : "Sign in to start chatting"
+            isAuthenticated ? "Ask OpenClaw…" : "Sign in to start chatting"
           }
-          disabled={!session || streaming}
+          disabled={!isAuthenticated || streaming || !supabase}
           className="flex-1 rounded border border-neutral-300 px-3 py-2 text-sm"
         />
         <button
           type="submit"
-          disabled={!session || streaming}
+          disabled={!isAuthenticated || streaming || !supabase}
           className="rounded bg-neutral-900 px-4 py-2 text-sm text-white disabled:opacity-50"
         >
           {streaming ? "Streaming…" : "Send"}

@@ -1,14 +1,47 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 const RATE_LIMIT_WINDOW_SECONDS = 60;
 const RATE_LIMIT_MAX_REQUESTS = 20;
+const UNKNOWN_IP = "unknown";
+
+function isValidIpv4(value: string) {
+  const segments = value.split(".");
+  if (segments.length !== 4) return false;
+  return segments.every((segment) => {
+    if (!/^\d{1,3}$/.test(segment)) return false;
+    const parsed = Number(segment);
+    return parsed >= 0 && parsed <= 255;
+  });
+}
+
+function isValidIpv6(value: string) {
+  if (!value.includes(":")) return false;
+  return /^[a-fA-F0-9:]+$/.test(value);
+}
+
+function firstHeaderIp(headerValue: string | null) {
+  if (!headerValue) return null;
+  const candidate = headerValue.split(",")[0]?.trim();
+  if (!candidate || candidate.length > 45) return null;
+  if (isValidIpv4(candidate) || isValidIpv6(candidate)) return candidate;
+  return null;
+}
 
 function getClientIp(request: Request) {
-  const forwardedFor = request.headers.get("x-forwarded-for");
-  if (!forwardedFor) return "unknown";
-  return forwardedFor.split(",")[0]?.trim() || "unknown";
+  const candidates = [
+    request.headers.get("x-vercel-forwarded-for"),
+    request.headers.get("x-real-ip"),
+    request.headers.get("x-forwarded-for"),
+  ];
+
+  for (const header of candidates) {
+    const parsed = firstHeaderIp(header);
+    if (parsed) return parsed;
+  }
+
+  return UNKNOWN_IP;
 }
 
 export async function POST(request: Request) {
@@ -50,15 +83,22 @@ export async function POST(request: Request) {
   }
 
   const clientIp = getClientIp(request);
-  const { data: allowed, error: rateLimitError } = await supabaseAdmin.rpc(
-    "consume_chat_rate_limit",
-    {
+  let allowed: boolean | null = null;
+  let rateLimitError: unknown = null;
+
+  try {
+    const supabaseAdmin = getSupabaseAdmin();
+    const result = await supabaseAdmin.rpc("consume_chat_rate_limit", {
       p_user_id: user.id,
       p_ip: clientIp,
       p_window_seconds: RATE_LIMIT_WINDOW_SECONDS,
       p_max_requests: RATE_LIMIT_MAX_REQUESTS,
-    }
-  );
+    });
+    allowed = result.data;
+    rateLimitError = result.error;
+  } catch (error) {
+    rateLimitError = error;
+  }
 
   if (rateLimitError) {
     console.error("Rate limit check failed:", rateLimitError);
