@@ -2,7 +2,7 @@ import DashboardClient from "./dashboard-client";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function Home() {
-  const supabase = createClient();
+  const supabase = await createClient();
   const {
     data: { session },
   } = await supabase.auth.getSession();
